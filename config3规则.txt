@@ -1,0 +1,96 @@
+ComfyUI 配置文件编写 Skill 协议
+1. 基础信息配置 (Basic Info)
+name/description: 建议保持一致，描述工作流的核心能力（如：多模态生成）。
+
+version: 语义化版本号，重大节点更新（如增加多模态支持）时递增。
+
+workflowId_webappId: 必须与后端部署的 ID 严格匹配。
+
+2. 多模态输入定义 (Inputs)
+输入端采用“类型+序号”或“通用字段”定义，需遵循以下标准：
+
+多模态组:
+
+image: multiple 设为 true，max 设置最大承载张数。
+
+video: multiple 设为 true，max 根据模型能力限制（示例中为 3 个）。
+
+audio: multiple 设为 true。
+
+参数组:
+
+prompt: 核心文本输入，需配套 tooltip 提示。
+
+stringX: 用于离散选项（Dropdown），如分辨率、时长、画幅比例、真人数模式。
+
+default: 必须与 workflow.json 中的初始值一致。
+
+options: 提供 UI 层可选的合法字符串列表。
+
+3. 工作流编辑器映射 (workflow_editor)
+这是配置文件的核心，决定了 UI 数据如何注入到工作流节点中。
+
+A. 核心节点定义
+main_node_id: 定义主逻辑节点（通常是封装好的插件节点，如 RH_RhartVideoSparkvideo20FastMultimodalVideo）。
+
+B. 多模态媒体节点组 (media_nodes)
+将 UI 上的单个上传组件映射到工作流中的多个加载节点：
+
+image:
+
+nodes: 列出所有 LoadImage 类节点的 ID。
+
+inputs_in_main: 列出 main_node_id 中对应的输入 Slot（如 image1 到 image9）。
+
+field: 媒体节点的具体字段名（LoadImage 为 image）。
+
+video:
+
+nodes: 对应 LoadVideo 类节点 ID。
+
+field: 媒体节点的字段名（LoadVideo 为 file）。
+
+audio:
+
+nodes: 对应 LoadAudio 类节点 ID。
+
+field: 媒体节点的字段名（LoadAudio 为 audioUI）。
+
+C. 参数直接映射 (mapping)
+定义非媒体类参数的流转逻辑：
+
+文本流: prompt 映射到文本节点（如 CR Text）的 text 字段。
+
+数值/布尔流:
+
+直接映射到 main_node_id。
+
+type: 必须严格声明 string, int, bool 等，以确保 JSON 类型校验通过。
+{
+  "name": "多模态工作流Skill",
+  "version": "1.0",
+  "description": "基于ComfyUI的自动化适配协议",
+  "api_type": "time",
+  "workflowId_webappId": "ID_STRING",
+  "inputs": {
+    "image": { "multiple": true, "max": 9, "label": "参考图" },
+    "prompt": { "label": "提示词", "default": "" },
+    "string1": { "label": "选项A", "default": "val1", "options": ["val1", "val2"] }
+  },
+  "workflow_editor": {
+    "main_node_id": "主节点ID",
+    "media_nodes": {
+      "image": {
+        "nodes": ["节点ID1", "节点ID2"],
+        "inputs_in_main": ["slot1", "slot2"],
+        "field": "image"
+      }
+    },
+    "mapping": {
+      "prompt": { "nodeId": "文本节点ID", "fieldName": "text", "type": "string" },
+       "seed": { "nodeId": "1", "fieldName": "seed", "type": "int" },
+      "string1": { "nodeId": "主节点ID", "fieldName": "对应字段名", "type": "string" }
+    }
+  }
+}
+input里面只能是：image、video、audio、seed、prompt、string。
